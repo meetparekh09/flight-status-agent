@@ -2,10 +2,15 @@ import os
 import requests
 import json
 from openai import OpenAI
+from dotenv import load_dotenv
 
-from constants import FLIGHT_STATUS_PROMPT, ASSISTANT_PROMPT
+from constants import FLIGHT_STATUS_SYSTEM_PROMPT_LOCAL, USER_FLIGHT_REQUEST_PROMPT_LOCAL, ASSISTANT_SYSTEM_PROMPT_LOCAL, ASSISTANT_PROMPT_LOCAL
 
-client = OpenAI(api_key=os.getenv('OPEN_AI_API_KEY'))
+load_dotenv()
+
+api_key = os.getenv('OPENAI_API_KEY')
+base_url = os.getenv('OPENAI_BASE_URL')
+client = OpenAI(base_url=base_url, api_key=api_key)
 
 def flight_details(flight_request_prompt):
     """
@@ -14,11 +19,11 @@ def flight_details(flight_request_prompt):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": FLIGHT_STATUS_PROMPT},
-            {"role": "user", "content": flight_request_prompt}
+            {"role": "system", "content": FLIGHT_STATUS_SYSTEM_PROMPT_LOCAL},
+            {"role": "user", "content": USER_FLIGHT_REQUEST_PROMPT_LOCAL.format(flight_request_prompt=flight_request_prompt)}
         ]    
     )
-    url = response.choices[0].message.content
+    url = response.choices[0].message.content.replace("```", "").replace("plaintext", "").replace("url", "").replace("\n", "").strip()
 
     print(f"Assistant: Making request with url: {url}")
 
@@ -52,10 +57,11 @@ tools = [{
     }
 }]
 
-original_messages = [ {"role": "system", "content": ASSISTANT_PROMPT}]
+original_messages = [ {"role": "system", "content": ASSISTANT_SYSTEM_PROMPT_LOCAL}]
 while True:
     user_message = input("User: ")
     original_messages.append({"role": "user", "content": user_message})
+    import pdb; pdb.set_trace()
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -94,7 +100,7 @@ while True:
             continue
         
         messages = original_messages + [
-            {"role": "assistant", "content": f"The tool calls {tool_calls} were successful. The tool responses are {tool_responses}. Please summarize the response now."}
+            {"role": "assistant", "content": ASSISTANT_PROMPT_LOCAL.format(tool_call_responses=json.dumps(tool_responses))}
         ]
         response = client.chat.completions.create(
             model="gpt-4o",
