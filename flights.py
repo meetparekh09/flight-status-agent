@@ -61,7 +61,6 @@ original_messages = [ {"role": "system", "content": ASSISTANT_SYSTEM_PROMPT_LOCA
 while True:
     user_message = input("User: ")
     original_messages.append({"role": "user", "content": user_message})
-    import pdb; pdb.set_trace()
 
     response = client.chat.completions.create(
         model="gpt-4o",
